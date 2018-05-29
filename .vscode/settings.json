@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "initializer_list": "c",
+        "utility": "c",
+        "addrspace.h": "c",
+        "vm.h": "c",
+        "opt-dumbvm.h": "c"
+    }
+}

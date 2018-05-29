@@ -1,0 +1,3 @@
+vm_bootstrap(): used to initialize frame table. We create it at the bottom address of the RAM and use linked list to store the free frames. The head of the linked list is the first free fram in the physical address.
+
+alloc_kpages(): Firstly we check the frame table pointer. If the frame table is initialized, we return the head of the linked list of the frame table, otherwise we use ram_stealmem function to allocate address.
