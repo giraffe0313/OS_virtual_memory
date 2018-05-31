@@ -8,14 +8,15 @@
 
 /* Place your page table functions here */
 
+struct hashed_page_table *h_pt = 0; 
 
 void vm_bootstrap(void)
 {
         /* Initialise VM sub-system.  You probably want to initialise your 
            frame table here as well.
         */
-       create_frame_table();
-       alloc_kpages(1);
+        create_frame_table();
+        // alloc_kpages(1);
 }
 
 int

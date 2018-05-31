@@ -121,6 +121,13 @@ typedef struct frametable_entry {
         struct frametable_entry *next_free;
 } frame_table_entry;
 
+struct hashed_page_table {
+    uint32_t process_ID;
+    int v_page_num;
+    int frame_num;
+    int permission;
+    int next;
+};
 
 void ram_bootstrap(void);
 paddr_t ram_stealmem(unsigned long npages);
