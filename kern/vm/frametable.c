@@ -80,7 +80,7 @@ vaddr_t alloc_kpages(unsigned int npages)
 
                 return PADDR_TO_KVADDR(addr);
         } else {
-                kprintf("alloc_kpages: try to allocate %d pages\n", npages);
+                // kprintf("alloc_kpages: try to allocate %d pages\n", npages);
                 KASSERT(npages == 1);
                 // there is no free space
                 spinlock_acquire(&stealmem_lock);
@@ -89,7 +89,7 @@ vaddr_t alloc_kpages(unsigned int npages)
                         return 0;
                 }
                 int result = ft[0].next_free_frame;
-                kprintf("alloc_kpages: result is %d\n", result);
+                // kprintf("alloc_kpages: result is %d\n", result);
                 for (int i = 0; i < ft[0].next_free_frame; i++) {
                         if (ft[i].next_free_frame == result) {
                                 ft[i].next_free_frame = ft[result].next_free_frame;
@@ -104,7 +104,7 @@ vaddr_t alloc_kpages(unsigned int npages)
 
 void free_kpages(vaddr_t addr)
 {       
-        kprintf("free_kpages: %d!!\n", addr);
+        // kprintf("free_kpages: %d!!\n", addr);
         int frame_number = (addr - MIPS_KSEG0) / PAGE_SIZE;
         for (int i = 0; i < frame_number; i++) {
                 if (ft[i].next_free_frame > frame_number) {

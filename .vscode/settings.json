@@ -7,6 +7,8 @@
         "opt-dumbvm.h": "c",
         "thread.h": "c",
         "tlb.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "spinlock.h": "c",
+        "lib.h": "c"
     }
 }

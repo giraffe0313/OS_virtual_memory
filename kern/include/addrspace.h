@@ -47,6 +47,14 @@ struct vnode;
  *
  * You write this.
  */
+typedef struct p_memory_address {
+        int frame_table_num;
+        int vertual_page_num;
+        int permission;
+        uint32_t p_vaddr;
+        uint32_t p_memsz;
+        struct p_memory_address *next;
+} p_memory_address;
 
 struct addrspace {
 #if OPT_DUMBVM
@@ -58,6 +66,8 @@ struct addrspace {
         size_t as_npages2;
         paddr_t as_stackpbase;
 #else
+        p_memory_address *head;
+
         /* Put stuff here for your VM system */
 #endif
 };

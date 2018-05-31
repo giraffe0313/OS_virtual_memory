@@ -268,7 +268,7 @@ as_deactivate(void)
 int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t sz,
 		 int readable, int writeable, int executable)
-{
+{	
 	size_t npages;
 
 	/* Align the region. First, the base... */

@@ -57,10 +57,12 @@ as_create(void)
         if (as == NULL) {
                 return NULL;
         }
+        as -> head = NULL;
 
         /*
          * Initialize as needed.
          */
+        kprintf("as_create: create a addrspace, pid is %d\n",(uint32_t)as);
 
         return as;
 }
@@ -141,13 +143,27 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         /*
          * Write this.
          */
+        // p_memory_address *temp = kmalloc(sizeof(p_memory_address *));
 
+        kprintf("as_define_region: vaddr_t is %d, size_t is %d\n", vaddr, memsize);
+        size_t npages;
+        memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
+        kprintf("as_define_region: first sz is %d\n", memsize);
+        vaddr &= PAGE_FRAME;
+        kprintf("as_define_region:  changed vaddr is %d\n", vaddr);
+        memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
+        kprintf("as_define_region: changed memsize is %d\n", memsize);
+        npages = memsize / PAGE_SIZE;
+        kprintf("as_define_region: npages is %d\n", npages);
+        
         (void)as;
         (void)vaddr;
         (void)memsize;
         (void)readable;
         (void)writeable;
         (void)executable;
+        return 0;
+        
         return ENOSYS; /* Unimplemented */
 }
 

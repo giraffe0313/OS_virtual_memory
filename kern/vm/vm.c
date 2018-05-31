@@ -15,6 +15,7 @@ void vm_bootstrap(void)
            frame table here as well.
         */
        create_frame_table();
+       alloc_kpages(1);
 }
 
 int
