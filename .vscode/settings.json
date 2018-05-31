@@ -4,6 +4,9 @@
         "utility": "c",
         "addrspace.h": "c",
         "vm.h": "c",
-        "opt-dumbvm.h": "c"
+        "opt-dumbvm.h": "c",
+        "thread.h": "c",
+        "tlb.h": "c",
+        "type_traits": "c"
     }
 }

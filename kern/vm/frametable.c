@@ -10,7 +10,48 @@
  * function and call it from vm_bootstrap
  */
 
+
+struct frame_table_entry {
+        int next_free_frame;
+};
+
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
+
+struct frame_table_entry *ft = 0;
+
+void create_frame_table(void) {
+        paddr_t pt, pt1, top;
+        // calculate need space
+        top = paddr_to_kvaddr(ram_getsize());
+        int indicate_frame_number = (top - MIPS_KSEG0)/PAGE_SIZE;
+        int require_space = sizeof(struct frame_table_entry) * indicate_frame_number;
+        int require_frame_number = require_space/PAGE_SIZE;
+        kprintf("create_frame_table: require space is %d, frame number is %d\n", require_space, require_frame_number);
+
+        // init frame table
+        spinlock_acquire(&stealmem_lock);
+
+        pt1 = ram_stealmem(require_frame_number);
+        pt = paddr_to_kvaddr(pt1);
+        ft = (struct frame_table_entry*) pt;
+
+        int frame = (int )((void *)pt - MIPS_KSEG0)/PAGE_SIZE + require_frame_number;
+        for (int i = 0; i < frame; i++) {
+                ft[i].next_free_frame = frame;
+        }
+        for (int i = frame; i < indicate_frame_number - 1; i++) {
+                ft[i].next_free_frame = i + 1;
+        }
+        ft[indicate_frame_number - 1].next_free_frame = 0;
+        spinlock_release(&stealmem_lock);
+
+        kprintf("create_frame_table: used space is %d\n", frame);
+        kprintf("create_frame_table: top is %p\n",(void *)top);
+        kprintf("create_frame_table: orgin address is %d, ft address is %p\n", pt1, &ft[1]);
+}
+
+
+
 
 /* Note that this function returns a VIRTUAL address, not a physical 
  * address
@@ -26,21 +67,49 @@ vaddr_t alloc_kpages(unsigned int npages)
          * IMPLEMENT ME.  You should replace this code with a proper
          *                implementation.
          */
+        if (ft == 0) {
+                kprintf("alloc_kpages: no frame table\n");
+                paddr_t addr;
 
-        paddr_t addr;
+                spinlock_acquire(&stealmem_lock);
+                addr = ram_stealmem(npages);
+                spinlock_release(&stealmem_lock);
 
-        spinlock_acquire(&stealmem_lock);
-        addr = ram_stealmem(npages);
-        spinlock_release(&stealmem_lock);
+                if(addr == 0)
+                        return 0;
 
-        if(addr == 0)
-                return 0;
+                return PADDR_TO_KVADDR(addr);
+        } else {
+                kprintf("alloc_kpages: try to allocate %d pages\n", npages);
+                KASSERT(npages == 1);
+                // there is no free space
+                spinlock_acquire(&stealmem_lock);
+                if (ft[ft[0].next_free_frame].next_free_frame == 0) {
+                        spinlock_release(&stealmem_lock);
+                        return 0;
+                }
+                int result = ft[0].next_free_frame;
+                kprintf("alloc_kpages: result is %d\n", result);
+                for (int i = 0; i < ft[0].next_free_frame; i++) {
+                        if (ft[i].next_free_frame == result) {
+                                ft[i].next_free_frame = ft[result].next_free_frame;
+                        }
+                }
+                spinlock_release(&stealmem_lock);
+                kprintf("alloc_kpages: reture result is %d\n", MIPS_KSEG0 + PAGE_SIZE * result);
+                return (MIPS_KSEG0 + PAGE_SIZE * result);
 
-        return PADDR_TO_KVADDR(addr);
+        }
 }
 
 void free_kpages(vaddr_t addr)
-{
-        (void) addr;
+{       
+        kprintf("free_kpages: %d!!\n", addr);
+        int frame_number = (addr - MIPS_KSEG0) / PAGE_SIZE;
+        for (int i = 0; i < frame_number; i++) {
+                if (ft[i].next_free_frame > frame_number) {
+                        ft[i].next_free_frame = frame_number;
+                }
+        }
 }
 

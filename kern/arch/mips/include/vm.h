@@ -115,6 +115,13 @@ kvaddr_to_paddr(vaddr_t vaddr){
  * in bootup before VM initialization is complete.
  */
 
+
+typedef struct frametable_entry {
+        int frame_num;
+        struct frametable_entry *next_free;
+} frame_table_entry;
+
+
 void ram_bootstrap(void);
 paddr_t ram_stealmem(unsigned long npages);
 paddr_t ram_getsize(void);

@@ -1,3 +1,9 @@
-vm_bootstrap(): used to initialize frame table. We create it at the bottom address of the RAM and use linked list to store the free frames. The head of the linked list is the first free fram in the physical address.
+vm_bootstrap(): used to initialize frame table and HPT. We create these two from the bottom free address of the RAM. For the frame table, we create a fixed size array and the content of each element is whether this address is used or not and the next free fram number. For the HPT, we also 
 
-alloc_kpages(): Firstly we check the frame table pointer. If the frame table is initialized, we return the head of the linked list of the frame table, otherwise we use ram_stealmem function to allocate address.
+alloc_kpages(): Firstly we check the frame table pointer. If the frame table is initialized, we return the first free address spacce in the frame table, otherwise we use ram_stealmem function to allocate address.
+
+address structure is a head of a linked list and the node represents the data segment. The contentd of node is the address information, corresponding frame number and the pointer points to the next node.
+
+vm_fault: we check whether this address is in the HPT. If it exists, we add this address to the TLB, otherwise raise a EFAULT.
+
+as_create: initialize a 
