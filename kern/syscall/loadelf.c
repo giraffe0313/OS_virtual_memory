@@ -102,12 +102,12 @@ load_segment(struct addrspace *as, struct vnode *v,
 	u.uio_segflg = is_executable ? UIO_USERISPACE : UIO_USERSPACE;
 	u.uio_rw = UIO_READ;
 	u.uio_space = as;
-
+	
 	result = VOP_READ(v, &u);
 	if (result) {
 		return result;
 	}
-
+	
 	if (u.uio_resid != 0) {
 		/* short read; problem with executable? */
 		kprintf("ELF: short read on segment - file truncated?\n");
@@ -287,7 +287,7 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 				ph.p_type);
 			return ENOEXEC;
 		}
-
+		
 		result = load_segment(as, v, ph.p_offset, ph.p_vaddr,
 				      ph.p_memsz, ph.p_filesz,
 				      ph.p_flags & PF_X);
@@ -295,7 +295,7 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 			return result;
 		}
 	}
-
+	
 	result = as_complete_load(as);
 	if (result) {
 		return result;

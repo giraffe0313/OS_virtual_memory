@@ -9,6 +9,9 @@
         "tlb.h": "c",
         "type_traits": "c",
         "spinlock.h": "c",
-        "lib.h": "c"
+        "lib.h": "c",
+        "limits": "c",
+        "types.h": "c",
+        "string.h": "c"
     }
 }

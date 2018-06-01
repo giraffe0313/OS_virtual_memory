@@ -50,9 +50,11 @@ struct vnode;
 typedef struct p_memory_address {
         int frame_table_num;
         int vertual_page_num;
+        int need_page_num;
         int permission;
+        int dirty;
         uint32_t p_vaddr;
-        uint32_t p_memsz;
+        uint32_t p_upper;
         struct p_memory_address *next;
 } p_memory_address;
 
