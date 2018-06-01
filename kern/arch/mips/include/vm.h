@@ -128,7 +128,13 @@ struct hashed_page_table {
     int permission;
     int next;
 };
-paddr_t create_frame_table(void);
+
+struct hash_table_v {
+    struct hashed_page_table* hash_pt;
+    int hash_frame_num;
+};
+
+vaddr_t create_frame_table(void);
 
 void ram_bootstrap(void);
 paddr_t ram_stealmem(unsigned long npages);

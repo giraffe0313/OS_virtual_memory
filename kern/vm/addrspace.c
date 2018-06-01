@@ -69,7 +69,6 @@ as_create(void)
          * Initialize as needed.
          */
         
-
         return as;
 }
 
@@ -146,12 +145,14 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
                  int readable, int writeable, int executable)
 {
+        int x = hpt_hash(as, vaddr);
+        kprintf("hash table is : %d\n", x);
 
         kprintf("as_define_region: vaddr_t is %d, size_t is %d\n", vaddr, memsize);
         size_t npages;
         memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
         vaddr &= PAGE_FRAME;
-        kprintf("as_define_region:  changed vaddr is %d\n", vaddr);
+        kprintf("as_define_region:  changed vaddr is %p\n", (void *)vaddr);
         memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
         kprintf("as_define_region: changed memsize is %d\n", memsize);
         npages = memsize / PAGE_SIZE;
@@ -178,7 +179,16 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         }
         tmp -> next = temp;
                 
+        // test hashed table
+        x = hpt_hash(as, vaddr);
+        kprintf("hash table is : %d\n", x);
+        
+        uint32_t y = (uint32_t) vaddr & TLBHI_VPAGE;
+        kprintf("unit32 is  %p\n", (void *)y);
+        
 
+
+        // 
 
         // p_memory_address *tmp1 = as->head;
         // while (tmp1 != NULL) {

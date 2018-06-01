@@ -19,7 +19,7 @@ static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
 struct frame_table_entry *ft = 0;
 
-paddr_t create_frame_table(void) {
+vaddr_t create_frame_table(void) {
         paddr_t pt, pt1, top, hash_pt;
         // calculate need space
         top = paddr_to_kvaddr(ram_getsize());
@@ -42,6 +42,9 @@ paddr_t create_frame_table(void) {
         kprintf("create_frame_table: hash pointer is %p\n", (void *) hash_pt);
 
         int frame = (int )((void *)pt - MIPS_KSEG0)/PAGE_SIZE + hashed_pt_num;
+
+        struct hash_table_v* r_pt = (struct hash_table_v*)(MIPS_KSEG0 + PAGE_SIZE * frame);
+        frame = frame + 1;
         for (int i = 0; i < frame; i++) {
                 ft[i].next_free_frame = frame;
         }
@@ -53,7 +56,11 @@ paddr_t create_frame_table(void) {
 
         kprintf("create_frame_table: used space is %d\n", frame);
         kprintf("create_frame_table: orgin address is %p, ft address is %p\n",(void *)pt, ft);
-        return hash_pt;
+        
+        r_pt -> hash_pt = (struct hashed_page_table *)hash_pt;
+        r_pt -> hash_frame_num = 2 * indicate_frame_number;
+
+        return (vaddr_t)r_pt;
 }
 
 

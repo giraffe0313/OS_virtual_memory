@@ -12,6 +12,8 @@
         "lib.h": "c",
         "limits": "c",
         "types.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "errno.h": "c",
+        "setjmp.h": "c"
     }
 }
