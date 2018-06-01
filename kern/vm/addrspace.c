@@ -53,16 +53,22 @@ as_create(void)
 {
         struct addrspace *as;
 
-        as = kmalloc(sizeof(struct addrspace));
+        // as = (struct addrspace *)kmalloc(sizeof(struct addrspace));
+        // kprintf("as_create: create a addrspace, pid is %p\n",(void *)as);
+
+        as = (struct addrspace *)alloc_kpages(1);
+
         if (as == NULL) {
                 return NULL;
         }
-        as -> head = NULL;
+        as -> head = (p_memory_address *)alloc_kpages(1);
+        as -> head -> vertual_page_num = 0;
+        as -> head -> next = NULL;
 
         /*
          * Initialize as needed.
          */
-        kprintf("as_create: create a addrspace, pid is %d\n",(uint32_t)as);
+        
 
         return as;
 }
@@ -140,39 +146,74 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
                  int readable, int writeable, int executable)
 {
-        /*
-         * Write this.
-         */
-        // p_memory_address *temp = kmalloc(sizeof(p_memory_address *));
 
         kprintf("as_define_region: vaddr_t is %d, size_t is %d\n", vaddr, memsize);
         size_t npages;
         memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
-        kprintf("as_define_region: first sz is %d\n", memsize);
         vaddr &= PAGE_FRAME;
         kprintf("as_define_region:  changed vaddr is %d\n", vaddr);
         memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
         kprintf("as_define_region: changed memsize is %d\n", memsize);
         npages = memsize / PAGE_SIZE;
         kprintf("as_define_region: npages is %d\n", npages);
-        
-        (void)as;
-        (void)vaddr;
-        (void)memsize;
-        (void)readable;
-        (void)writeable;
-        (void)executable;
+
+        // kprintf("read %d write %d exe %d %d\n", readable, writeable, executable, 
+        //                                         readable | writeable | executable);
+        kprintf("as_define_region: vertual page number is %d\n", vaddr / PAGE_SIZE);
+
+        p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
+        temp -> frame_table_num = 0;
+        temp -> vertual_page_num = vaddr / PAGE_SIZE;
+        temp -> need_page_num = npages;
+        temp -> permission = readable | writeable | executable;
+        temp -> p_vaddr = vaddr;
+        temp -> p_upper = vaddr + memsize;
+        temp -> dirty = 0;
+        temp -> next = NULL;
+
+
+        p_memory_address *tmp = as -> head;
+        while (tmp -> next != NULL) {
+                tmp = tmp -> next;
+        }
+        tmp -> next = temp;
+                
+
+
+        // p_memory_address *tmp1 = as->head;
+        // while (tmp1 != NULL) {
+        //         kprintf("page num is %d\n", tmp1 -> vertual_page_num);
+        //         tmp1 = tmp1 -> next;
+        // }
+
+        // (void)as;
+        // (void)vaddr;
+        // (void)memsize;
+        // (void)readable;
+        // (void)writeable;
+        // (void)executable;
+        kprintf("\n");
         return 0;
         
-        return ENOSYS; /* Unimplemented */
+        // return ENOSYS; /* Unimplemented */
 }
 
 int
 as_prepare_load(struct addrspace *as)
 {
-        /*
-         * Write this.
-         */
+
+        // left shift 3bits and allocte readwrite permision
+        int bit = 7;
+        kprintf("as_prepare_load: start load\n");
+        p_memory_address *temp = as -> head -> next;
+        while (temp) {
+                kprintf("as_prepare_load: permission is %d\n", temp -> permission);
+                temp -> permission = temp -> permission << 3;
+                temp -> permission = temp -> permission | bit;
+                kprintf("as_prepare_load: changed permission is %d\n", temp -> permission);
+
+                temp = temp -> next;
+        }
 
         (void)as;
         return 0;
@@ -181,10 +222,15 @@ as_prepare_load(struct addrspace *as)
 int
 as_complete_load(struct addrspace *as)
 {
-        /*
-         * Write this.
-         */
-
+        // right shift 3 bits
+        kprintf("as_complete_load: start load\n");
+        p_memory_address *temp = as -> head -> next;
+        while (temp) {
+                kprintf("as_prepare_load: permission is %d\n", temp -> permission);
+                temp -> permission = temp -> permission >> 3;
+                kprintf("as_prepare_load: changed permission is %d\n", temp -> permission);
+                temp = temp -> next;
+        }
         (void)as;
         return 0;
 }
@@ -192,9 +238,24 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-        /*
-         * Write this.
-         */
+        kprintf("as_define_stack: start\n");
+
+        p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
+        temp -> frame_table_num = 0;
+        temp -> vertual_page_num = (USERSTACK - 16 * PAGE_SIZE) / PAGE_SIZE;
+        temp -> need_page_num = 16;
+        temp -> permission = 6;
+        temp -> p_vaddr = USERSTACK - 16 * PAGE_SIZE;
+        temp -> p_upper = USERSTACK;
+        temp -> dirty = 0;
+        temp -> next = NULL;
+
+
+        p_memory_address *tmp = as -> head;
+        while (tmp -> next != NULL) {
+                tmp = tmp -> next;
+        }
+        tmp -> next = temp;
 
         (void)as;
 

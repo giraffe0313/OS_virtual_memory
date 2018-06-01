@@ -39,6 +39,7 @@ paddr_t create_frame_table(void) {
         kprintf("create_frame_table: need %d page to store HPT\n", hashed_pt_num);
 
         hash_pt = paddr_to_kvaddr(ram_stealmem(hashed_pt_num));
+        kprintf("create_frame_table: hash pointer is %p\n", (void *) hash_pt);
 
         int frame = (int )((void *)pt - MIPS_KSEG0)/PAGE_SIZE + hashed_pt_num;
         for (int i = 0; i < frame; i++) {
@@ -51,8 +52,7 @@ paddr_t create_frame_table(void) {
         spinlock_release(&stealmem_lock);
 
         kprintf("create_frame_table: used space is %d\n", frame);
-        kprintf("create_frame_table: top is %p\n",(void *)top);
-        kprintf("create_frame_table: orgin address is %d, ft address is %p\n", pt1, &ft[1]);
+        kprintf("create_frame_table: orgin address is %p, ft address is %p\n",(void *)pt, ft);
         return hash_pt;
 }
 
@@ -95,14 +95,14 @@ vaddr_t alloc_kpages(unsigned int npages)
                         return 0;
                 }
                 int result = ft[0].next_free_frame;
-                // kprintf("alloc_kpages: result is %d\n", result);
+                kprintf("alloc_kpages: result is %d\n", result);
                 for (int i = 0; i < ft[0].next_free_frame; i++) {
                         if (ft[i].next_free_frame == result) {
                                 ft[i].next_free_frame = ft[result].next_free_frame;
                         }
                 }
                 spinlock_release(&stealmem_lock);
-                kprintf("alloc_kpages: reture result is %d\n", MIPS_KSEG0 + PAGE_SIZE * result);
+                kprintf("alloc_kpages: reture result is %p\n", (void *)(MIPS_KSEG0 + PAGE_SIZE * result));
                 return (MIPS_KSEG0 + PAGE_SIZE * result);
 
         }
