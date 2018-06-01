@@ -123,8 +123,8 @@ typedef struct frametable_entry {
 
 struct hashed_page_table {
     uint32_t process_ID;
-    int v_page_num;
-    int frame_num;
+    vaddr_t v_page_num;
+    vaddr_t frame_num;
     int permission;
     int next;
 };

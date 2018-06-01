@@ -64,6 +64,8 @@ as_create(void)
         as -> head = (p_memory_address *)alloc_kpages(1);
         as -> head -> vertual_page_num = 0;
         as -> head -> next = NULL;
+        as -> head -> p_vaddr = 0;
+        as -> head -> p_upper = 0;
 
         /*
          * Initialize as needed.
@@ -180,15 +182,19 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         tmp -> next = temp;
                 
         // test hashed table
-        x = hpt_hash(as, vaddr);
-        kprintf("hash table is : %d\n", x);
+        // x = hpt_hash(as, vaddr);
+        // kprintf("hash table is : %d\n", x);
         
-        uint32_t y = (uint32_t) vaddr & TLBHI_VPAGE;
-        kprintf("unit32 is  %p\n", (void *)y);
+        // uint32_t y = (uint32_t) vaddr & TLBHI_VPAGE;
+        // kprintf("unit32 is  %p\n", (void *)y);
         
+        
+        // vaddr_t z = alloc_kpages(1);
+        // hpt_load(as, vaddr, z, 6);
+        // hpt_check(as, vaddr);
+        // check_region(as, vaddr);
 
-
-        // 
+        
 
         // p_memory_address *tmp1 = as->head;
         // while (tmp1 != NULL) {
