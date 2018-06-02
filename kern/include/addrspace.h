@@ -48,11 +48,11 @@ struct vnode;
  * You write this.
  */
 typedef struct p_memory_address {
-        vaddr_t frame_table_num;
-        int vertual_page_num;
-        int need_page_num;
+        // vaddr_t frame_table_num;
+        // int vertual_page_num;
+        // int need_page_num;
         int permission;
-        int dirty;
+        // int dirty;
         struct addrspace *old;
         uint32_t p_vaddr;
         uint32_t p_upper;

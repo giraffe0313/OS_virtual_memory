@@ -62,7 +62,7 @@ as_create(void)
                 return NULL;
         }
         as -> head = (p_memory_address *)alloc_kpages(1);
-        as -> head -> vertual_page_num = 0;
+        // as -> head -> vertual_page_num = 0;
         as -> head -> next = NULL;
         as -> head -> p_vaddr = 0;
         as -> head -> p_upper = 0;
@@ -84,9 +84,16 @@ as_copy(struct addrspace *old, struct addrspace **ret)
                 return ENOMEM;
         }
 
-        /*
-         * Write this.
-         */
+        // p_memory_address *old_pt = old -> head -> next;
+        // p_memory_address *newas_pt = newas -> head;
+        // p_memory_address *temp = 0;
+        // while (old_pt) {
+        //         temp = (p_memory_address *)alloc_kpages(1);
+        //         temp -> 
+                
+        // }
+
+        
 
         (void)old;
 
@@ -165,13 +172,13 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         kprintf("as_define_region: vertual page number is %d\n", vaddr / PAGE_SIZE);
 
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
-        temp -> frame_table_num = 0;
-        temp -> vertual_page_num = vaddr / PAGE_SIZE;
-        temp -> need_page_num = npages;
+        // temp -> frame_table_num = 0;
+        // temp -> vertual_page_num = vaddr / PAGE_SIZE;
+        // temp -> need_page_num = npages;
         temp -> permission = readable | writeable | executable;
         temp -> p_vaddr = vaddr;
         temp -> p_upper = vaddr + memsize;
-        temp -> dirty = 0;
+        // temp -> dirty = 0;
         temp -> next = NULL;
         temp -> old = NULL;
 
@@ -254,13 +261,13 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
         // kprintf("as_define_stack: start\n");
 
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
-        temp -> frame_table_num = 0;
-        temp -> vertual_page_num = (USERSTACK - 16 * PAGE_SIZE) / PAGE_SIZE;
-        temp -> need_page_num = 16;
+        // temp -> frame_table_num = 0;
+        // temp -> vertual_page_num = (USERSTACK - 16 * PAGE_SIZE) / PAGE_SIZE;
+        // temp -> need_page_num = 16;
         temp -> permission = 6;
         temp -> p_vaddr = USERSTACK - 16 * PAGE_SIZE;
         temp -> p_upper = USERSTACK;
-        temp -> dirty = 0;
+        // temp -> dirty = 0;
         temp -> next = NULL;
 
 
