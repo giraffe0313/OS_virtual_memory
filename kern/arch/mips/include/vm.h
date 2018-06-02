@@ -121,13 +121,13 @@ typedef struct frametable_entry {
         struct frametable_entry *next_free;
 } frame_table_entry;
 
-struct hashed_page_table {
+typedef struct hashed_page_table {
     uint32_t process_ID;
     vaddr_t v_page_num;
     vaddr_t frame_num;
     int permission;
-    int next;
-};
+    struct hashed_page_table* next;
+} hashed_page_table;
 
 struct hash_table_v {
     struct hashed_page_table* hash_pt;

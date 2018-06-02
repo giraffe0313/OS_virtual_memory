@@ -121,9 +121,9 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         if (result != -1) {
                 spinlock_acquire(&stealmem_lock);
                 entryhi = TLBHI_VPAGE & faultaddress;
-                entrylo = h_pt -> hash_pt[result].frame_num & TLBLO_PPAGE & TLBLO_VALID;
+                entrylo = (KVADDR_TO_PADDR(h_pt -> hash_pt[result].frame_num) & TLBLO_PPAGE) | TLBLO_VALID;
                 if (h_pt -> hash_pt[result].permission & write_bit) {
-                      entrylo &= TLBLO_DIRTY; 
+                      entrylo |= TLBLO_DIRTY; 
                 }
                 tlb_random(entryhi, entrylo);
                 spinlock_release(&stealmem_lock);
@@ -136,19 +136,19 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                         for (int i = 0; i < result; i++) {
                                 tmp = tmp -> next;
                         }
-                        vaddr_t frame_add = alloc_kpages(1);
-                        spinlock_acquire(&stealmem_lock);
+                        vaddr_t frame_add = KVADDR_TO_PADDR(alloc_kpages(1));
+                        // spinlock_acquire(&stealmem_lock);
                         if (! tmp -> dirty) {
                                 memset((void *)frame_add, 0, PAGE_SIZE);
                         } else {
                                 memcpy((void *)frame_add, (const void *)tmp -> frame_table_num, PAGE_SIZE);
                         }
                         tmp -> frame_table_num = frame_add;
-                        hpt_load(as, faultaddress, frame_add, 7);
+                        hpt_load(as, faultaddress, PADDR_TO_KVADDR(frame_add), 7);
                         entryhi = TLBHI_VPAGE & faultaddress;
-                        entrylo = frame_add & TLBLO_PPAGE & TLBLO_VALID & TLBLO_DIRTY;
+                        entrylo = (frame_add & TLBLO_PPAGE) | TLBLO_VALID | TLBLO_DIRTY;
                         tlb_random(entryhi, entrylo);
-                        spinlock_release(&stealmem_lock);
+                        // spinlock_release(&stealmem_lock);
                         return 0;
                 }
         }

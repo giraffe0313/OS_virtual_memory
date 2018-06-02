@@ -254,15 +254,15 @@ as_complete_load(struct addrspace *as)
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-        kprintf("as_define_stack: start\n");
+        // kprintf("as_define_stack: start\n");
 
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
         temp -> frame_table_num = 0;
         temp -> vertual_page_num = (USERSTACK - 16 * PAGE_SIZE) / PAGE_SIZE;
         temp -> need_page_num = 16;
         temp -> permission = 6;
-        temp -> p_vaddr = USERSTACK - 16 * PAGE_SIZE;
-        temp -> p_upper = USERSTACK;
+        temp -> p_vaddr = USERSTACK;
+        temp -> p_upper = USERSTACK + 16 * PAGE_SIZE;
         temp -> dirty = 0;
         temp -> next = NULL;
 

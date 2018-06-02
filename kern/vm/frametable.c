@@ -21,7 +21,7 @@ struct frame_table_entry *ft = 0;
 
 vaddr_t create_frame_table(void) {
         paddr_t pt, pt1, top;
-        struct hashed_page_table * hash_pt; 
+        hashed_page_table * hash_pt; 
         // calculate need space
         top = paddr_to_kvaddr(ram_getsize());
         int indicate_frame_number = (top - MIPS_KSEG0)/PAGE_SIZE;
@@ -40,7 +40,7 @@ vaddr_t create_frame_table(void) {
         int hashed_pt_num =  (2 * indicate_frame_number * sizeof(struct hashed_page_table))/PAGE_SIZE + 1;
         kprintf("create_frame_table: need %d page to store HPT\n", hashed_pt_num);
 
-        hash_pt = (struct hashed_page_table *)paddr_to_kvaddr(ram_stealmem(hashed_pt_num));
+        hash_pt = (hashed_page_table *)paddr_to_kvaddr(ram_stealmem(hashed_pt_num));
         kprintf("create_frame_table: hash pointer is %p\n", hash_pt);
         for (int i = 0; i < 2 * indicate_frame_number; i++) {
                 hash_pt[i].process_ID = 0;
