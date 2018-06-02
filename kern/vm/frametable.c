@@ -43,8 +43,8 @@ vaddr_t create_frame_table(void) {
         hash_pt = (hashed_page_table *)paddr_to_kvaddr(ram_stealmem(hashed_pt_num));
         kprintf("create_frame_table: hash pointer is %p\n", hash_pt);
         for (int i = 0; i < 2 * indicate_frame_number; i++) {
-                hash_pt[i].process_ID = 0;
-                hash_pt[i].next = -1;
+                hash_pt[i].process_ID = -1;
+                hash_pt[i].next = NULL;
         }
 
         int frame = (int )((void *)pt - MIPS_KSEG0)/PAGE_SIZE + hashed_pt_num;

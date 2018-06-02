@@ -53,6 +53,7 @@ typedef struct p_memory_address {
         int need_page_num;
         int permission;
         int dirty;
+        struct addrspace *old;
         uint32_t p_vaddr;
         uint32_t p_upper;
         struct p_memory_address *next;
@@ -131,9 +132,9 @@ int               as_complete_load(struct addrspace *as);
 int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
 int hpt_hash(struct addrspace *as, vaddr_t faultaddr);
-int hpt_check(struct addrspace *as, vaddr_t faultaddr);
-int hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permission);
-int check_region(struct addrspace *as, vaddr_t faultaddr);
+vaddr_t hpt_check(struct addrspace *as, vaddr_t faultaddr);
+void hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permission);
+vaddr_t check_region(struct addrspace *as, vaddr_t faultaddr);
 /*
  * Functions in loadelf.c
  *    load_elf - load an ELF user program executable into the current

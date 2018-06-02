@@ -173,6 +173,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         temp -> p_upper = vaddr + memsize;
         temp -> dirty = 0;
         temp -> next = NULL;
+        temp -> old = NULL;
 
 
         p_memory_address *tmp = as -> head;
@@ -184,10 +185,6 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         // test hashed table
         // x = hpt_hash(as, vaddr);
         // kprintf("hash table is : %d\n", x);
-        
-        // uint32_t y = (uint32_t) vaddr & TLBHI_VPAGE;
-        // kprintf("unit32 is  %p\n", (void *)y);
-        
         
         // vaddr_t z = alloc_kpages(1);
         // hpt_load(as, vaddr, z, 6);
@@ -202,12 +199,12 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         //         tmp1 = tmp1 -> next;
         // }
 
-        // (void)as;
-        // (void)vaddr;
-        // (void)memsize;
-        // (void)readable;
-        // (void)writeable;
-        // (void)executable;
+        (void)as;
+        (void)vaddr;
+        (void)memsize;
+        (void)readable;
+        (void)writeable;
+        (void)executable;
         kprintf("\n");
         return 0;
         
@@ -261,8 +258,8 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
         temp -> vertual_page_num = (USERSTACK - 16 * PAGE_SIZE) / PAGE_SIZE;
         temp -> need_page_num = 16;
         temp -> permission = 6;
-        temp -> p_vaddr = USERSTACK;
-        temp -> p_upper = USERSTACK + 16 * PAGE_SIZE;
+        temp -> p_vaddr = USERSTACK - 16 * PAGE_SIZE;
+        temp -> p_upper = USERSTACK;
         temp -> dirty = 0;
         temp -> next = NULL;
 
