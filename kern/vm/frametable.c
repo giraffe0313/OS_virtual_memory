@@ -86,6 +86,9 @@ vaddr_t alloc_kpages(unsigned int npages)
          * IMPLEMENT ME.  You should replace this code with a proper
          *                implementation.
          */
+        if (npages != 1) {
+                panic("more than one page");
+        }
         if (ft == 0) {
                 // kprintf("alloc_kpages: no frame table\n");
                 paddr_t addr;

@@ -61,6 +61,24 @@ vaddr_t hpt_check(struct addrspace *as, vaddr_t faultaddr) {
         return 0;
 }
 
+void add_HPT(struct addrspace *old, struct addrspace *new) {
+        hashed_page_table *tmp = 0;
+        vaddr_t frame_add = 0;
+        for (int i = 0; i < h_pt -> hash_frame_num; i++) {
+                if ( h_pt -> hash_pt[i].process_ID == 0) {
+                        continue;
+                }
+                tmp = & h_pt -> hash_pt[i];
+                while (tmp) {
+                        if (tmp -> process_ID == (uint32_t)old) {
+                                frame_add = alloc_kpages(1);
+                                memcpy((void *)frame_add, (void *)tmp -> frame_num, PAGE_SIZE);
+                                hpt_load(new, tmp -> v_page_num, frame_add, tmp->permission);
+                        }
+                        tmp = tmp -> next;
+                }
+        }
+}
 void 
 hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permission) {
         int h_index = hpt_hash(as, faultaddr);
@@ -97,6 +115,11 @@ vaddr_t check_region(struct addrspace *as, vaddr_t faultaddr) {
                 tmp = tmp -> next;
         }
 
+        // kprintf("check_region: as is %p\n", as);
+        // kprintf("check_region: old is %p\n", as -> head -> next -> old);
+        // kprintf("check_region: first vaddr is %d, uper is %d\n", 
+        //         as -> head -> next -> p_vaddr, as -> head -> next ->p_upper);
+        // kprintf("faultaddr is %d\n", faultaddr);
         return 0;
 }
 
@@ -130,6 +153,8 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                 if (result) {
                 // address in region
                         vaddr_t frame_add = KVADDR_TO_PADDR(alloc_kpages(1));
+
+                        // kprintf("vm_falut : load address is %p\n", (void *)frame_add);
                         spinlock_acquire(&stealmem_lock);
                         p_memory_address *tmp = (p_memory_address *)result;
                         if (!tmp -> old) {
@@ -137,26 +162,41 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                                 memset((void *)PADDR_TO_KVADDR(frame_add), 0, PAGE_SIZE);
                                 // panic("error test");
                         } else {
-                                result = hpt_check(tmp -> old, faultaddress);
-                                tmp -> old = NULL;
-                                if (result) {
-                                        hashed_page_table *tmp1 = (hashed_page_table *) result;
-                                        memcpy((void *)PADDR_TO_KVADDR(frame_add), (const void *)(tmp1 -> frame_num), PAGE_SIZE);
-                                } else {
-                                        panic("error HPT");
                                 
-                                }
+                                result = hpt_check(tmp -> old, faultaddress);
+                                // tmp -> old = NULL;
+                                if (result) {
+                                        // panic("test HPT");
+                                        hashed_page_table *tmp1 = (hashed_page_table *) result;
+                                        memcpy((void *)PADDR_TO_KVADDR(frame_add), (void *)(tmp1 -> frame_num), PAGE_SIZE);
+                                } 
                         }
-                        spinlock_release(&stealmem_lock);
-                        hpt_load(as, faultaddress, PADDR_TO_KVADDR(frame_add), 7);
+                        // spinlock_release(&stealmem_lock);
+                        hpt_load(as, faultaddress, PADDR_TO_KVADDR(frame_add), tmp -> permission);
                         entryhi = TLBHI_VPAGE & faultaddress;
                         entrylo = (frame_add & TLBLO_PPAGE) | TLBLO_VALID;
                         if (tmp -> permission & write_bit) {
                                 entrylo |= TLBLO_DIRTY; 
                         }
                         tlb_random(entryhi, entrylo);
-                        // spinlock_release(&stealmem_lock);
+                        spinlock_release(&stealmem_lock);
                         return 0;
+                }
+                if (as -> head -> old) {
+                        vaddr_t frame_add = alloc_kpages(1);
+                        if (!frame_add) {
+                                panic("no memory space");
+                        }
+                        
+                        memset((void *)frame_add, 0, PAGE_SIZE);
+                        hpt_load(as, faultaddress, frame_add, 7);
+                        spinlock_acquire(&stealmem_lock);
+                        entryhi = TLBHI_VPAGE & faultaddress;
+                        entrylo = (KVADDR_TO_PADDR(frame_add) & TLBLO_PPAGE) | TLBLO_VALID | TLBLO_DIRTY;
+                        tlb_random(entryhi, entrylo);
+                        spinlock_release(&stealmem_lock);
+                        return 0;
+
                 }
         }
         
@@ -164,7 +204,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         
         // return 0;
 
-        // panic("vm_fault hasn't been written yet\n");
+        panic("vm_fault hasn't been written yet\n");
 
         return EFAULT;
 }

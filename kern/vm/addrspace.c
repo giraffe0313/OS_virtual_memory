@@ -83,10 +83,11 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         if (newas==NULL) {
                 return ENOMEM;
         }
-        kprintf("as_copy: start\n");
+        // kprintf("as_copy: start\n");
         int spl = splhigh();
         p_memory_address *old_pt = old -> head -> next;
         p_memory_address *newas_pt = newas -> head;
+        newas_pt -> old = old;
         p_memory_address *temp = 0;
         while (old_pt) {
                 temp = (p_memory_address *)alloc_kpages(1);
@@ -101,12 +102,20 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         }
         old_pt = old -> head -> next;
         newas_pt = newas -> head -> next;
-        while (old_pt) {
-                kprintf("old_vaddr is %d, new_vaddr is %d\n", old_pt -> p_vaddr, newas_pt -> p_vaddr);
-                kprintf("old_permission is %d, new_permission is %d\n", old_pt -> permission, newas_pt -> permission);
-                old_pt = old_pt -> next;
-                newas_pt = newas_pt -> next;
-        }
+
+        // while (newas_pt) {
+        //         kprintf("old_vaddr as is %p, new as is %p\n", old, newas);
+        //         kprintf("old_vaddr is %d, new_vaddr is %d\n", old_pt -> p_vaddr, newas_pt -> p_vaddr);
+        //         kprintf("old_p_upper is %d, new_p_upper is %d\n", old_pt -> p_upper, newas_pt -> p_upper);
+        //         kprintf("old_permission is %d, new_permission is %d\n", old_pt -> permission, newas_pt -> permission);
+        //         old_pt = old_pt -> next;
+        //         newas_pt = newas_pt -> next;
+        // }
+
+        // add_HPT(old, newas);
+
+        kprintf("\n");
+
 
         splx(spl);
 
@@ -206,7 +215,10 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         // temp -> dirty = 0;
         temp -> next = 0;
         temp -> old = NULL;
-        kprintf("as_define_region: p_vaddr is %d\n", vaddr);
+        // kprintf("as_define_region: malloc address is %p\n", temp);
+
+        kprintf("as_define_region: lower is %d\n", vaddr);
+        kprintf("as_define_region: higher is %d\n", temp -> p_upper);
 
         p_memory_address *tmp = as -> head;
         while (tmp -> next) {
@@ -292,10 +304,11 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
         // kprintf("as_define_stack: start\n");
 
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
+        // kprintf("stack adress is %p\n", temp);
         // temp -> frame_table_num = 0;
         // temp -> vertual_page_num = (USERSTACK - 16 * PAGE_SIZE) / PAGE_SIZE;
         // temp -> need_page_num = 16;
-        temp -> permission = 6;
+        temp -> permission = 7;
         temp -> p_vaddr = USERSTACK - 16 * PAGE_SIZE;
         temp -> p_upper = USERSTACK;
         // temp -> dirty = 0;

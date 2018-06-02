@@ -135,6 +135,9 @@ int hpt_hash(struct addrspace *as, vaddr_t faultaddr);
 vaddr_t hpt_check(struct addrspace *as, vaddr_t faultaddr);
 void hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permission);
 vaddr_t check_region(struct addrspace *as, vaddr_t faultaddr);
+void add_HPT(struct addrspace *old, struct addrspace *new);
+
+
 /*
  * Functions in loadelf.c
  *    load_elf - load an ELF user program executable into the current
