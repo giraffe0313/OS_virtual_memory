@@ -130,6 +130,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                 if (result) {
                 // address in region
                         vaddr_t frame_add = KVADDR_TO_PADDR(alloc_kpages(1));
+                        spinlock_acquire(&stealmem_lock);
                         p_memory_address *tmp = (p_memory_address *)result;
                         if (!tmp -> old) {
                                 // as_zero_region(frame_add, 1);
@@ -140,12 +141,13 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                                 tmp -> old = NULL;
                                 if (result) {
                                         hashed_page_table *tmp1 = (hashed_page_table *) result;
-                                        memcpy((void *)PADDR_TO_KVADDR(frame_add), (const void *)PADDR_TO_KVADDR(tmp1 -> frame_num), PAGE_SIZE);
+                                        memcpy((void *)PADDR_TO_KVADDR(frame_add), (const void *)(tmp1 -> frame_num), PAGE_SIZE);
                                 } else {
                                         panic("error HPT");
                                 
                                 }
                         }
+                        spinlock_release(&stealmem_lock);
                         hpt_load(as, faultaddress, PADDR_TO_KVADDR(frame_add), 7);
                         entryhi = TLBHI_VPAGE & faultaddress;
                         entrylo = (frame_add & TLBLO_PPAGE) | TLBLO_VALID;

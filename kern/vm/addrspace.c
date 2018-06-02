@@ -83,17 +83,36 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         if (newas==NULL) {
                 return ENOMEM;
         }
+        kprintf("as_copy: start\n");
+        int spl = splhigh();
+        p_memory_address *old_pt = old -> head -> next;
+        p_memory_address *newas_pt = newas -> head;
+        p_memory_address *temp = 0;
+        while (old_pt) {
+                temp = (p_memory_address *)alloc_kpages(1);
+                temp -> permission = old_pt -> permission;
+                temp -> p_vaddr = old_pt -> p_vaddr;
+                temp -> p_upper = old_pt -> p_upper;
+                temp -> old = old;
+                temp -> next = NULL;
+                newas_pt -> next = temp;
+                newas_pt = temp;
+                old_pt = old_pt -> next;
+        }
+        old_pt = old -> head -> next;
+        newas_pt = newas -> head -> next;
+        while (old_pt) {
+                kprintf("old_vaddr is %d, new_vaddr is %d\n", old_pt -> p_vaddr, newas_pt -> p_vaddr);
+                kprintf("old_permission is %d, new_permission is %d\n", old_pt -> permission, newas_pt -> permission);
+                old_pt = old_pt -> next;
+                newas_pt = newas_pt -> next;
+        }
 
-        // p_memory_address *old_pt = old -> head -> next;
-        // p_memory_address *newas_pt = newas -> head;
-        // p_memory_address *temp = 0;
-        // while (old_pt) {
-        //         temp = (p_memory_address *)alloc_kpages(1);
-        //         temp -> 
-                
-        // }
+        splx(spl);
 
-        
+
+
+
 
         (void)old;
 
@@ -125,9 +144,15 @@ as_activate(void)
                 return;
         }
 
-        /*
-         * Write this.
-         */
+        int i, spl;
+	/* Disable interrupts on this CPU while frobbing the TLB. */
+	spl = splhigh();
+
+	for (i=0; i<NUM_TLB; i++) {
+		tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+	}
+
+	splx(spl);
 }
 
 void
@@ -179,16 +204,22 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         temp -> p_vaddr = vaddr;
         temp -> p_upper = vaddr + memsize;
         // temp -> dirty = 0;
-        temp -> next = NULL;
+        temp -> next = 0;
         temp -> old = NULL;
-
+        kprintf("as_define_region: p_vaddr is %d\n", vaddr);
 
         p_memory_address *tmp = as -> head;
-        while (tmp -> next != NULL) {
+        while (tmp -> next) {
                 tmp = tmp -> next;
         }
         tmp -> next = temp;
-                
+
+
+        tmp = as -> head -> next;
+        while (tmp) {
+                kprintf("as_define_region: test p_vaddr is %d\n", tmp -> p_vaddr);
+                tmp = tmp -> next;
+        }        
         // test hashed table
         // x = hpt_hash(as, vaddr);
         // kprintf("hash table is : %d\n", x);
@@ -246,9 +277,9 @@ as_complete_load(struct addrspace *as)
         kprintf("as_complete_load: start load\n");
         p_memory_address *temp = as -> head -> next;
         while (temp) {
-                kprintf("as_prepare_load: permission is %d\n", temp -> permission);
+                kprintf("as_complete_load: permission is %d\n", temp -> permission);
                 temp -> permission = temp -> permission >> 3;
-                kprintf("as_prepare_load: changed permission is %d\n", temp -> permission);
+                kprintf("as_complete_load: changed permission is %d\n", temp -> permission);
                 temp = temp -> next;
         }
         (void)as;
