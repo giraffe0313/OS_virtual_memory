@@ -54,26 +54,14 @@ struct addrspace *
 as_create(void)
 {
         struct addrspace *as;
-        // as = (struct addrspace *)kmalloc(sizeof(struct addrspace));
-        // kprintf("as_create: create a addrspace, pid is %p\n",(void *)as);
-        // test();
         as = (struct addrspace *)alloc_kpages(1);
-        // as = kmalloc(sizeof(struct addrspace *));
-        // kprintf("as point is %p\n", as);
-
         if (as == NULL) {
                 return NULL;
         }
         as -> head = (p_memory_address *)alloc_kpages(1);
-        // as -> head -> vertual_page_num = 0;
         as -> head -> next = NULL;
         as -> head -> p_vaddr = 0;
         as -> head -> p_upper = 0;
-
-        /*
-         * Initialize as needed.
-         */
-        
         return as;
 }
 
@@ -86,8 +74,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         if (newas==NULL) {
                 return ENOMEM;
         }
-        // kprintf("as_copy: start\n");
-        int spl = splhigh();
+        spinlock_acquire(&stealmem_lock);
         // old -> head -> old = old;
         p_memory_address *old_pt = old -> head -> next;
         p_memory_address *newas_pt = newas -> head;
@@ -104,30 +91,9 @@ as_copy(struct addrspace *old, struct addrspace **ret)
                 newas_pt = temp;
                 old_pt = old_pt -> next;
         }
-        old_pt = old -> head -> next;
-        newas_pt = newas -> head -> next;
-
-        // kprintf("old is %p\n", (void *)newas -> head -> old);
-        // while (newas_pt) {
-        //         kprintf("old_vaddr as is %p, new as is %p\n", old, newas);
-        //         kprintf("old_vaddr is %d, new_vaddr is %d\n", old_pt -> p_vaddr, newas_pt -> p_vaddr);
-        //         kprintf("old_p_upper is %d, new_p_upper is %d\n", old_pt -> p_upper, newas_pt -> p_upper);
-        //         kprintf("old_permission is %d, new_permission is %d\n", old_pt -> permission, newas_pt -> permission);
-        //         kprintf("\n");
-        //         old_pt = old_pt -> next;
-        //         newas_pt = newas_pt -> next;
-        // }
-
         add_HPT(old, newas);
 
-        // kprintf("\n");
-        // kprintf("\n");
-
-        splx(spl);
-
-
-
-
+        spinlock_release(&stealmem_lock);
 
         (void)old;
 
@@ -138,29 +104,21 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 void
 as_destroy(struct addrspace *as)
 {
-        // int spl = splhigh();
-        // delete_HPT((paddr_t)as);
+
         spinlock_acquire(&stealmem_lock);
-        // kprintf("destroy as is %p!!!!!\n", as);
-        // free_kpages((paddr_t)as -> head);
+        // delete HPT entries
         delete_HPT((paddr_t)as);
+
+        // delete region linked list
         p_memory_address *tmp = as -> head;
-        // free_kpages((paddr_t)tmp);
-        // p_memory_address *tmp_next = as -> head -> next;
         while (tmp) {
                 p_memory_address *tmp_next = tmp -> next;
                 free_kpages((paddr_t)tmp);
                 tmp = tmp_next;
         }
-        
         free_kpages((paddr_t)as);
-        // splx(spl);
-        
 
-        
-        spinlock_release(&stealmem_lock);
-        
-        
+        spinlock_release(&stealmem_lock);        
         (void) as;
 }
 
@@ -213,37 +171,15 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
                  int readable, int writeable, int executable)
 {
-        // int x = hpt_hash(as, vaddr);
-        // kprintf("hash table is : %d\n", x);
-
-        // kprintf("as_define_region: vaddr_t is %d, size_t is %d\n", vaddr, memsize);
-        // size_t npages;
         memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
         vaddr &= PAGE_FRAME;
-        // kprintf("as_define_region:  changed vaddr is %p\n", (void *)vaddr);
         memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
-        // kprintf("as_define_region: changed memsize is %d\n", memsize);
-        // npages = memsize / PAGE_SIZE;
-        // kprintf("as_define_region: npages is %d\n", npages);
-
-        // kprintf("read %d write %d exe %d %d\n", readable, writeable, executable, 
-        //                                         readable | writeable | executable);
-        // kprintf("as_define_region: vertual page number is %d\n", vaddr / PAGE_SIZE);
-
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
-        // temp -> frame_table_num = 0;
-        // temp -> vertual_page_num = vaddr / PAGE_SIZE;
-        // temp -> need_page_num = npages;
         temp -> permission = readable | writeable | executable;
         temp -> p_vaddr = vaddr;
         temp -> p_upper = vaddr + memsize;
-        // temp -> dirty = 0;
         temp -> next = 0;
         temp -> old = NULL;
-        // kprintf("as_define_region: malloc address is %p\n", temp);
-
-        // kprintf("as_define_region: lower is %d\n", vaddr);
-        // kprintf("as_define_region: higher is %d\n", temp -> p_upper);
 
         p_memory_address *tmp = as -> head;
         while (tmp -> next) {
@@ -251,39 +187,14 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         }
         tmp -> next = temp;
 
-
-        tmp = as -> head -> next;
-        while (tmp) {
-                // kprintf("as_define_region: test p_vaddr is %d\n", tmp -> p_vaddr);
-                tmp = tmp -> next;
-        }        
-        // test hashed table
-        // x = hpt_hash(as, vaddr);
-        // kprintf("hash table is : %d\n", x);
-        
-        // vaddr_t z = alloc_kpages(1);
-        // hpt_load(as, vaddr, z, 6);
-        // hpt_check(as, vaddr);
-        // check_region(as, vaddr);
-
-        
-
-        // p_memory_address *tmp1 = as->head;
-        // while (tmp1 != NULL) {
-        //         kprintf("page num is %d\n", tmp1 -> vertual_page_num);
-        //         tmp1 = tmp1 -> next;
-        // }
-
         (void)as;
         (void)vaddr;
         (void)memsize;
         (void)readable;
         (void)writeable;
         (void)executable;
-        kprintf("\n");
         return 0;
-        
-        // return ENOSYS; /* Unimplemented */
+
 }
 
 int
@@ -291,21 +202,17 @@ as_prepare_load(struct addrspace *as)
 {
 
         // left shift 3bits and allocte readwrite permision
-        int spl = splhigh();
+        spinlock_acquire(&stealmem_lock);
         int bit = 7;
-        // kprintf("as_prepare_load: start load\n");
         p_memory_address *temp = as -> head -> next;
         while (temp) {
-                // kprintf("as_prepare_load: permission is %d\n", temp -> permission);
                 temp -> permission = temp -> permission << 3;
                 temp -> permission = temp -> permission | bit;
-                // kprintf("as_prepare_load: changed permission is %d\n", temp -> permission);
-
                 temp = temp -> next;
         }
 
         (void)as;
-        splx(spl);
+        spinlock_release(&stealmem_lock);
         return 0;
 }
 
@@ -313,34 +220,25 @@ int
 as_complete_load(struct addrspace *as)
 {
         // right shift 3 bits
-        int spl = splhigh();
-        // kprintf("as_complete_load: start load\n");
+        spinlock_acquire(&stealmem_lock);  
         p_memory_address *temp = as -> head -> next;
         while (temp) {
-                // kprintf("as_complete_load: permission is %d\n", temp -> permission);
                 temp -> permission = temp -> permission >> 3;
-                // kprintf("as_complete_load: changed permission is %d\n", temp -> permission);
                 temp = temp -> next;
         }
         (void)as;
-        splx(spl);
+        spinlock_release(&stealmem_lock);
         return 0;
 }
 
 int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
-        // kprintf("as_define_stack: start\n");
-        int spl = splhigh();
+        spinlock_acquire(&stealmem_lock);
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
-        // kprintf("stack adress is %p\n", temp);
-        // temp -> frame_table_num = 0;
-        // temp -> vertual_page_num = (USERSTACK - 16 * PAGE_SIZE) / PAGE_SIZE;
-        // temp -> need_page_num = 16;
         temp -> permission = 7;
         temp -> p_vaddr = USERSTACK - 16 * PAGE_SIZE;
         temp -> p_upper = USERSTACK;
-        // temp -> dirty = 0;
         temp -> next = NULL;
 
 
@@ -354,7 +252,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
         /* Initial user-level stack pointer */
         *stackptr = USERSTACK;
-        splx(spl);
+        spinlock_release(&stealmem_lock);
         return 0;
 }
 
