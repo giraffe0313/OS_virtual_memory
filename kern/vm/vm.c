@@ -73,12 +73,6 @@ vaddr_t hpt_check(struct addrspace *as, vaddr_t faultaddr) {
 }
 
 void delete_HPT(paddr_t as) {
-        // hashed_page_table *tmp;
-        // hashed_page_table *tmp_next;
-        // int spl = splhigh();
-        // kprintf("h_pt -> hash_frame_num is %d\n", 2);
-        // kprintf("as is %p\n", as);
-        // kprintf("delete_HPT pointer: %p\n", h_pt -> hash_pt);
         for (int i = 0; i < h_pt -> hash_frame_num; i++) {
                 if ( h_pt -> hash_pt[i].process_ID == 0) {
                         continue;
@@ -86,24 +80,31 @@ void delete_HPT(paddr_t as) {
                 if ( h_pt -> hash_pt[i].process_ID == (uint32_t)as) {
                         h_pt -> hash_pt[i].process_ID = 0;
                 }
-                // kprintf("i is %p\n", (void *)h_pt -> hash_pt[i].next);
-                // kprintf("find i:%d\n", h_pt -> hash_pt[i].process_ID);
-                hashed_page_table *tmp = &h_pt -> hash_pt[i];
+                hashed_page_table *pre_tmp = &h_pt -> hash_pt[i];
+                if (!h_pt -> hash_pt[i].next) {
+                        continue;
+                }
+
+                // kprintf("next value is %p\n", h_pt -> hash_pt[i].next);
+                hashed_page_table *tmp = h_pt -> hash_pt[i].next;
+
                 while (tmp) {
                         if (tmp -> process_ID == (uint32_t)as) {
                                 hashed_page_table *tmp_next = tmp -> next;
+                                // kprintf("delete this physical page is %p\n", (void *)tmp);
+                                free_kpages((vaddr_t)tmp -> frame_num);
                                 free_kpages((vaddr_t)tmp);
                                 tmp = tmp_next;
+                                pre_tmp -> next = tmp;
                         } else {
                                 tmp = tmp -> next;
+                                pre_tmp = pre_tmp -> next;
                         }
-                        tmp = tmp -> next;
+                        // tmp = tmp -> next;
                 }
                 // ;
         }
         // // splx(spl);
-        kprintf("wired%d!!\n", as);
-        ;
 }
 
 void add_HPT(struct addrspace *old, struct addrspace *new) {
@@ -119,8 +120,8 @@ void add_HPT(struct addrspace *old, struct addrspace *new) {
                                 frame_add = alloc_kpages(1);
                                 memcpy((void *)frame_add, (void *)tmp -> frame_num, PAGE_SIZE);
                                 hpt_load(new, tmp -> v_page_num, frame_add, tmp->permission);
-                                kprintf("add_HPT: old is %p, new is %p, new old is %p, old old is %p\n", 
-                                        old, new, (void *)new -> head -> old, old -> head -> old);
+                                // kprintf("add_HPT: old is %p, new is %p, new old is %p, old old is %p\n", 
+                                //         old, new, (void *)new -> head -> old, old -> head -> old);
                         }
                         
                         tmp = tmp -> next;
@@ -152,6 +153,7 @@ hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permiss
                 new_page -> v_page_num = faultaddr;
                 new_page -> frame_num = frame_num;
                 new_page -> permission = permission;
+                new_page -> next = NULL;
                 tmp -> next = new_page;
         }
 

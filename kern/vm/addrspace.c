@@ -58,6 +58,8 @@ as_create(void)
         // kprintf("as_create: create a addrspace, pid is %p\n",(void *)as);
         // test();
         as = (struct addrspace *)alloc_kpages(1);
+        // as = kmalloc(sizeof(struct addrspace *));
+        // kprintf("as point is %p\n", as);
 
         if (as == NULL) {
                 return NULL;
@@ -116,7 +118,7 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         //         newas_pt = newas_pt -> next;
         // }
 
-        // add_HPT(old, newas);
+        add_HPT(old, newas);
 
         // kprintf("\n");
         // kprintf("\n");
@@ -139,8 +141,9 @@ as_destroy(struct addrspace *as)
         // int spl = splhigh();
         // delete_HPT((paddr_t)as);
         spinlock_acquire(&stealmem_lock);
-        kprintf("destroy as is %p!!!!!\n", as);
+        // kprintf("destroy as is %p!!!!!\n", as);
         // free_kpages((paddr_t)as -> head);
+        delete_HPT((paddr_t)as);
         p_memory_address *tmp = as -> head;
         // free_kpages((paddr_t)tmp);
         // p_memory_address *tmp_next = as -> head -> next;
@@ -149,8 +152,8 @@ as_destroy(struct addrspace *as)
                 free_kpages((paddr_t)tmp);
                 tmp = tmp_next;
         }
+        
         free_kpages((paddr_t)as);
-        // delete_HPT((paddr_t)as);
         // splx(spl);
         
 

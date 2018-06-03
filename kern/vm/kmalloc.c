@@ -1194,7 +1194,7 @@ kmalloc(size_t sz)
 			return NULL;
 		}
 		KASSERT(address % PAGE_SIZE == 0);
-
+		
 		return (void *)address;
 	}
 
