@@ -17,6 +17,7 @@
         "setjmp.h": "c",
         "cpu.h": "c",
         "typeinfo": "c",
-        "spl.h": "c"
+        "spl.h": "c",
+        "proc.h": "c"
     }
 }

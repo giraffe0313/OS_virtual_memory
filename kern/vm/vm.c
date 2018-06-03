@@ -106,7 +106,7 @@ hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permiss
                 h_pt -> hash_pt[h_index].v_page_num = faultaddr;
                 h_pt -> hash_pt[h_index].frame_num = frame_num;
                 h_pt -> hash_pt[h_index].permission = permission;
-
+                h_pt -> hash_pt[h_index].next = NULL;
         } else {
                 hashed_page_table *tmp = & h_pt -> hash_pt[h_index];
     
@@ -126,7 +126,7 @@ hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permiss
 }
 
 vaddr_t check_region(struct addrspace *as, vaddr_t faultaddr) {
-        p_memory_address *tmp = as -> head;
+        p_memory_address *tmp = as -> head -> next;
         while (tmp) {
                 if (faultaddr >= tmp -> p_vaddr && faultaddr <= tmp -> p_upper) {
                         // kprintf("return value is %d\n", i);
@@ -144,10 +144,14 @@ vm_fault(int faulttype, vaddr_t faultaddress)
         if (faulttype == VM_FAULT_READONLY) {
                 return EFAULT;
         }
+        if (!faultaddress) {
+                return EFAULT;
+        }
         struct addrspace *as;
         as = proc_getas();
         vaddr_t result;
         int write_bit = 2;
+        int read_bit = 4;
         uint32_t entryhi, entrylo;
         // address in HPT
         faultaddress &= PAGE_FRAME;
@@ -170,8 +174,28 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                 result = check_region(as, faultaddress);
                 if (result) {
                 // address in region
-                        vaddr_t frame_add = KVADDR_TO_PADDR(alloc_kpages(1));
                         p_memory_address *tmp = (p_memory_address *)result;
+                        if (faulttype == VM_FAULT_READ) {
+                                int check_permision = tmp->permission & read_bit;
+                                if(! check_permision) {
+                                        spinlock_release(&stealmem_lock);
+                                        return EFAULT;
+                                }
+                        }
+                        if (faulttype == VM_FAULT_WRITE) {
+                                int check_permision = tmp->permission & write_bit;
+                                if (! check_permision) {
+                                        spinlock_release(&stealmem_lock);
+                                        return EFAULT;
+                                }
+                        }
+
+                        vaddr_t frame_add = alloc_kpages(1);
+                        if (!frame_add) {
+                                spinlock_release(&stealmem_lock);
+                                return ENOMEM;
+                        }
+                        frame_add = KVADDR_TO_PADDR(frame_add);
                         if (!tmp -> old) {
                                 memset((void *)PADDR_TO_KVADDR(frame_add), 0, PAGE_SIZE);
                         } else {
@@ -195,28 +219,11 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                         spinlock_release(&stealmem_lock);
                         return 0;
                 }
-                if (as -> head -> old) {
-                        vaddr_t frame_add = alloc_kpages(1);
-                        if (!frame_add) {
-                                spinlock_release(&stealmem_lock);
-                                return ENOMEM;
-                        }
-                        
-                        memset((void *)frame_add, 0, PAGE_SIZE);
-                        hpt_load(as, faultaddress, frame_add, 7);
-                        entryhi = TLBHI_VPAGE & faultaddress;
-                        entrylo = (KVADDR_TO_PADDR(frame_add) & TLBLO_PPAGE) | TLBLO_VALID | TLBLO_DIRTY;
-                        tlb_random(entryhi, entrylo);
-                        int spl = splhigh();
-                        splx(spl);
-                        spinlock_release(&stealmem_lock);
-                        return 0;
-                }
+
                 
         }
         
         spinlock_release(&stealmem_lock);
-        panic("vm_fault hasn't been written yet\n");
 
         return EFAULT;
 }
