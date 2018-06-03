@@ -54,10 +54,9 @@ struct addrspace *
 as_create(void)
 {
         struct addrspace *as;
-
         // as = (struct addrspace *)kmalloc(sizeof(struct addrspace));
         // kprintf("as_create: create a addrspace, pid is %p\n",(void *)as);
-
+        // test();
         as = (struct addrspace *)alloc_kpages(1);
 
         if (as == NULL) {
@@ -151,7 +150,7 @@ as_destroy(struct addrspace *as)
                 tmp = tmp_next;
         }
         free_kpages((paddr_t)as);
-        // delete_HPT();
+        // delete_HPT((paddr_t)as);
         // splx(spl);
         
 

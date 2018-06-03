@@ -15,6 +15,15 @@
 struct hash_table_v *h_pt = 0; 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
+void test(void) {
+        for (int i = 0; i < h_pt -> hash_frame_num; i++) {
+                if ( h_pt -> hash_pt[i].process_ID == 0) {
+                        continue;
+                }
+                kprintf("i6 is %p, i is %d\n", (void *)h_pt -> hash_pt[i].next, i);
+        }
+}
+
 void vm_bootstrap(void)
 {
         /* Initialise VM sub-system.  You probably want to initialise your 
@@ -26,7 +35,7 @@ void vm_bootstrap(void)
         // for (int i = 0; i < h_pt -> hash_frame_num; i++) {
         //         kprintf("i5 is %d\n", h_pt -> hash_pt[i].permission );
         // }
-        
+        test();
 }
 
 // static
@@ -77,19 +86,19 @@ void delete_HPT(paddr_t as) {
                 if ( h_pt -> hash_pt[i].process_ID == (uint32_t)as) {
                         h_pt -> hash_pt[i].process_ID = 0;
                 }
-                kprintf("i is %p\n", (void *)h_pt -> hash_pt[i].next);
+                // kprintf("i is %p\n", (void *)h_pt -> hash_pt[i].next);
                 // kprintf("find i:%d\n", h_pt -> hash_pt[i].process_ID);
-                // hashed_page_table *tmp = &h_pt -> hash_pt[i];
-                // while (tmp) {
-                //         if (tmp -> process_ID == (uint32_t)as) {
-                //                 hashed_page_table *tmp_next = tmp -> next;
-                //                 // free_kpages((vaddr_t)tmp);
-                //                 tmp = tmp_next;
-                //         } else {
-                //                 tmp = tmp -> next;
-                //         }
-                        // tmp = tmp -> next;
-                // }
+                hashed_page_table *tmp = &h_pt -> hash_pt[i];
+                while (tmp) {
+                        if (tmp -> process_ID == (uint32_t)as) {
+                                hashed_page_table *tmp_next = tmp -> next;
+                                free_kpages((vaddr_t)tmp);
+                                tmp = tmp_next;
+                        } else {
+                                tmp = tmp -> next;
+                        }
+                        tmp = tmp -> next;
+                }
                 // ;
         }
         // // splx(spl);
@@ -161,11 +170,11 @@ vaddr_t check_region(struct addrspace *as, vaddr_t faultaddr) {
                 tmp = tmp -> next;
         }
 
-        kprintf("check_region: as is %p\n", as);
-        kprintf("check_region: old is %p\n", as -> head -> next ->  old);
-        kprintf("check_region: first vaddr is %d, uper is %d\n", 
-                as -> head -> next -> p_vaddr, as -> head -> next ->p_upper);
-        kprintf("faultaddr is %d\n", faultaddr);
+        // kprintf("check_region: as is %p\n", as);
+        // kprintf("check_region: old is %p\n", as -> head -> next ->  old);
+        // kprintf("check_region: first vaddr is %d, uper is %d\n", 
+        //         as -> head -> next -> p_vaddr, as -> head -> next ->p_upper);
+        // kprintf("faultaddr is %d\n", faultaddr);
         return 0;
 }
 

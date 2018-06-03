@@ -43,15 +43,19 @@ vaddr_t create_frame_table(void) {
 
         hash_pt = (hashed_page_table *)paddr_to_kvaddr(ram_stealmem(hashed_pt_num));
         kprintf("create_frame_table: hash pointer is %p\n", hash_pt);
+        kprintf("hashed_pt_num is %d\n", hashed_pt_num);
+        
         for (int i = 0; i < 2 * indicate_frame_number; i++) {
                 hash_pt[i].process_ID = 0;
                 hash_pt[i].permission = 5;
                 hash_pt[i].next = 0;
         }
 
-        int frame = (int )((void *)pt - MIPS_KSEG0)/PAGE_SIZE + hashed_pt_num;
+        int frame = (int )((void *)pt - MIPS_KSEG0)/PAGE_SIZE + hashed_pt_num + require_frame_number;
 
-        struct hash_table_v* r_pt = (struct hash_table_v*)(MIPS_KSEG0 + PAGE_SIZE * frame);
+
+
+        struct hash_table_v* r_pt = (struct hash_table_v*)paddr_to_kvaddr(ram_getfirstfree());
         frame = frame + 1;
         for (int i = 0; i < frame; i++) {
                 ft[i].next_free_frame = frame;
@@ -68,6 +72,8 @@ vaddr_t create_frame_table(void) {
         r_pt -> hash_pt = hash_pt;
         r_pt -> hash_frame_num = 2 * indicate_frame_number;
 
+        // paddr_t tmp_first = paddr_to_kvaddr(ram_getfirstfree());
+        // kprintf("tmp_first is %p, hash_table is %p\n", (void*)tmp_first, r_pt);
         return (vaddr_t)r_pt;
 }
 
@@ -88,6 +94,7 @@ vaddr_t alloc_kpages(unsigned int npages)
          * IMPLEMENT ME.  You should replace this code with a proper
          *                implementation.
          */
+        // test();
         if (npages != 1) {
                 panic("more than one page");
         }

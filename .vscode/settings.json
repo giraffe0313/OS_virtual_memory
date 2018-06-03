@@ -16,6 +16,7 @@
         "errno.h": "c",
         "setjmp.h": "c",
         "cpu.h": "c",
-        "typeinfo": "c"
+        "typeinfo": "c",
+        "spl.h": "c"
     }
 }
