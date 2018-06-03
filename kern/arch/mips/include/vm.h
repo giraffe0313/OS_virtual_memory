@@ -141,7 +141,6 @@ paddr_t ram_stealmem(unsigned long npages);
 paddr_t ram_getsize(void);
 paddr_t ram_getfirstfree(void);
 void delete_HPT(paddr_t as);
-void test(void);
 /*
  * TLB shootdown bits.
  *

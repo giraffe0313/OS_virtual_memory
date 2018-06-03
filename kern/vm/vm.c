@@ -15,60 +15,32 @@
 struct hash_table_v *h_pt = 0; 
 static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
 
-void test(void) {
-        for (int i = 0; i < h_pt -> hash_frame_num; i++) {
-                if ( h_pt -> hash_pt[i].process_ID == 0) {
-                        continue;
-                }
-                kprintf("i6 is %p, i is %d\n", (void *)h_pt -> hash_pt[i].next, i);
-        }
-}
 
 void vm_bootstrap(void)
 {
-        /* Initialise VM sub-system.  You probably want to initialise your 
-           frame table here as well.
-        */
         vaddr_t tmp = create_frame_table();
         h_pt = (struct hash_table_v *)tmp;
-        // kprintf("hash pointer is %p\n", h_pt -> hash_pt);
-        // for (int i = 0; i < h_pt -> hash_frame_num; i++) {
-        //         kprintf("i5 is %d\n", h_pt -> hash_pt[i].permission );
-        // }
-        test();
+
 }
 
-// static
-// void
-// as_zero_region(paddr_t paddr, unsigned npages)
-// {
-// 	bzero((void *)PADDR_TO_KVADDR(paddr), npages * PAGE_SIZE);
-// }
 
 int hpt_hash(struct addrspace *as, vaddr_t faultaddr)
 {
         uint32_t index;
-
         index = (((uint32_t )as) ^ (faultaddr >> PAGE_BITS)) % h_pt -> hash_frame_num;
-        // kprintf("hash table address is %d\n", h_pt -> hash_frame_num);
         return index;
 }
 
 vaddr_t hpt_check(struct addrspace *as, vaddr_t faultaddr) {
         int h_index = hpt_hash(as, faultaddr);
         hashed_page_table *tmp = &h_pt -> hash_pt[h_index];
-
-        // int spl = splhigh();
         while (tmp) {
                 if (tmp -> process_ID == (uint32_t)as &&
                     tmp -> v_page_num == faultaddr) {
-                        //     splx(spl);
-                        //     kprintf("find this page, permision is %d\n!", tmp -> permission);
                             return (vaddr_t)tmp;
                     }
                 tmp = tmp -> next;
         }
-        // splx(spl);
         return 0;
 }
 
@@ -85,13 +57,12 @@ void delete_HPT(paddr_t as) {
                         continue;
                 }
 
-                // kprintf("next value is %p\n", h_pt -> hash_pt[i].next);
                 hashed_page_table *tmp = h_pt -> hash_pt[i].next;
 
                 while (tmp) {
                         if (tmp -> process_ID == (uint32_t)as) {
                                 hashed_page_table *tmp_next = tmp -> next;
-                                // kprintf("delete this physical page is %p\n", (void *)tmp);
+                        
                                 free_kpages((vaddr_t)tmp -> frame_num);
                                 free_kpages((vaddr_t)tmp);
                                 tmp = tmp_next;
@@ -100,11 +71,8 @@ void delete_HPT(paddr_t as) {
                                 tmp = tmp -> next;
                                 pre_tmp = pre_tmp -> next;
                         }
-                        // tmp = tmp -> next;
                 }
-                // ;
         }
-        // // splx(spl);
 }
 
 void add_HPT(struct addrspace *old, struct addrspace *new) {
@@ -120,8 +88,6 @@ void add_HPT(struct addrspace *old, struct addrspace *new) {
                                 frame_add = alloc_kpages(1);
                                 memcpy((void *)frame_add, (void *)tmp -> frame_num, PAGE_SIZE);
                                 hpt_load(new, tmp -> v_page_num, frame_add, tmp->permission);
-                                // kprintf("add_HPT: old is %p, new is %p, new old is %p, old old is %p\n", 
-                                //         old, new, (void *)new -> head -> old, old -> head -> old);
                         }
                         
                         tmp = tmp -> next;
@@ -134,21 +100,21 @@ void add_HPT(struct addrspace *old, struct addrspace *new) {
 void 
 hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permission) {
         int h_index = hpt_hash(as, faultaddr);
-        // int spl = splhigh();
+
         if (h_pt -> hash_pt[h_index].process_ID == 0) {
                 h_pt -> hash_pt[h_index].process_ID = (uint32_t)as;
                 h_pt -> hash_pt[h_index].v_page_num = faultaddr;
                 h_pt -> hash_pt[h_index].frame_num = frame_num;
                 h_pt -> hash_pt[h_index].permission = permission;
-                // kprintf("hpt_load permission is %d\n", permission);
+
         } else {
                 hashed_page_table *tmp = & h_pt -> hash_pt[h_index];
-                // kprintf("tmp -> permsion is %d\n", tmp -> permission);
+    
                 while (tmp -> next) {
                         tmp = tmp -> next;
                 }
                 hashed_page_table *new_page = (hashed_page_table *)alloc_kpages(1);
-                // kprintf("hpt_load allocate address is %p\n", new_page);
+
                 new_page -> process_ID = (uint32_t)as;
                 new_page -> v_page_num = faultaddr;
                 new_page -> frame_num = frame_num;
@@ -157,9 +123,6 @@ hpt_load(struct addrspace *as, vaddr_t faultaddr, vaddr_t frame_num, int permiss
                 tmp -> next = new_page;
         }
 
-
-        // splx(spl);
-        // kprintf("hpt_load: load in %d, next")
 }
 
 vaddr_t check_region(struct addrspace *as, vaddr_t faultaddr) {
@@ -172,11 +135,6 @@ vaddr_t check_region(struct addrspace *as, vaddr_t faultaddr) {
                 tmp = tmp -> next;
         }
 
-        // kprintf("check_region: as is %p\n", as);
-        // kprintf("check_region: old is %p\n", as -> head -> next ->  old);
-        // kprintf("check_region: first vaddr is %d, uper is %d\n", 
-        //         as -> head -> next -> p_vaddr, as -> head -> next ->p_upper);
-        // kprintf("faultaddr is %d\n", faultaddr);
         return 0;
 }
 
@@ -202,7 +160,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                 if (tmp -> permission & write_bit) {
                       entrylo |= TLBLO_DIRTY; 
                 }
-                // splx(spl);
+
                 int spl = splhigh();
                 tlb_random(entryhi, entrylo);
                 splx(spl);
@@ -213,20 +171,13 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                 if (result) {
                 // address in region
                         vaddr_t frame_add = KVADDR_TO_PADDR(alloc_kpages(1));
-
-                        // kprintf("vm_falut : load address is %p\n", (void *)frame_add);
-                        // spinlock_acquire(&stealmem_lock);
                         p_memory_address *tmp = (p_memory_address *)result;
                         if (!tmp -> old) {
-                                // as_zero_region(frame_add, 1);
                                 memset((void *)PADDR_TO_KVADDR(frame_add), 0, PAGE_SIZE);
-                                // panic("error test");
                         } else {
                                 
                                 result = hpt_check(tmp -> old, faultaddress);
-                                // tmp -> old = NULL;
                                 if (result) {
-                                        // panic("test HPT");
                                         hashed_page_table *tmp1 = (hashed_page_table *) result;
                                         memcpy((void *)PADDR_TO_KVADDR(frame_add), (void *)(tmp1 -> frame_num), PAGE_SIZE);
                                 } 
@@ -248,7 +199,6 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                         vaddr_t frame_add = alloc_kpages(1);
                         if (!frame_add) {
                                 spinlock_release(&stealmem_lock);
-                                // splx(spl);
                                 return ENOMEM;
                         }
                         
@@ -265,12 +215,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
                 
         }
         
-
-        
-        // return 0;
-        // kprintf("check_region: as is %p\n", as);
         spinlock_release(&stealmem_lock);
-        // splx(spl);
         panic("vm_fault hasn't been written yet\n");
 
         return EFAULT;
