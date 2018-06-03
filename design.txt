@@ -2,8 +2,12 @@ vm_bootstrap(): used to initialize frame table and HPT. We create these two from
 
 alloc_kpages(): Firstly we check the frame table pointer. If the frame table is initialized, we return the first free address spacce in the frame table, otherwise we use ram_stealmem function to allocate address.
 
-address structure is a head of a linked list and the node represents the data segment. The contentd of node is the address information, corresponding frame number and the pointer points to the next node.
+vm_fault: we check whether this address is in the HPT firstly. If it exists, we add this address to the TLB, otherwise raise a EFAULT. For the parent process, if passed address is valid, we allocate a new address for it and if this process is child process, we need to find the parent physical address from the HPT and memcpy the content to the new address. we also need to add this information to HPT and update TLB. If current process is child process, we do not check region again and just allocate a new address and update HPT and TLB.
 
-vm_fault: we check whether this address is in the HPT. If it exists, we add this address to the TLB, otherwise raise a EFAULT.
+as_create: allocate an address to the process and also initialize the head of linked list of region specifications.
 
-as_create: initialize a 
+as_define_region: we create a node structure firstly. Then we record the region as well as the permision information in it and put it in the end of region linked list.
+
+as_define_stack: just like as_define_region but set the region as top 16 pages.
+
+as_copy: 

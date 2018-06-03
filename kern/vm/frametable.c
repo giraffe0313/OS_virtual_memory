@@ -27,7 +27,8 @@ vaddr_t create_frame_table(void) {
         int indicate_frame_number = (top - MIPS_KSEG0)/PAGE_SIZE;
         int require_space = sizeof(struct frame_table_entry) * indicate_frame_number;
         int require_frame_number = require_space/PAGE_SIZE;
-        kprintf("create_frame_table: require space is %d, frame number is %d\n", require_space, require_frame_number);
+        // kprintf("create_frame_table: require space is %d, frame number is %d\n", require_space, require_frame_number);
+        // kprintf("indicate_frame_number is %d\n", indicate_frame_number * 2);
 
         // init frame table
         spinlock_acquire(&stealmem_lock);
@@ -38,13 +39,14 @@ vaddr_t create_frame_table(void) {
 
         // init HPT
         int hashed_pt_num =  (2 * indicate_frame_number * sizeof(struct hashed_page_table))/PAGE_SIZE + 1;
-        kprintf("create_frame_table: need %d page to store HPT\n", hashed_pt_num);
+        // kprintf("create_frame_table: need %d page to store HPT\n", hashed_pt_num);
 
         hash_pt = (hashed_page_table *)paddr_to_kvaddr(ram_stealmem(hashed_pt_num));
         kprintf("create_frame_table: hash pointer is %p\n", hash_pt);
         for (int i = 0; i < 2 * indicate_frame_number; i++) {
-                hash_pt[i].process_ID = -1;
-                hash_pt[i].next = NULL;
+                hash_pt[i].process_ID = 0;
+                hash_pt[i].permission = 5;
+                hash_pt[i].next = 0;
         }
 
         int frame = (int )((void *)pt - MIPS_KSEG0)/PAGE_SIZE + hashed_pt_num;
@@ -60,8 +62,8 @@ vaddr_t create_frame_table(void) {
         ft[indicate_frame_number - 1].next_free_frame = 0;
         spinlock_release(&stealmem_lock);
 
-        kprintf("create_frame_table: used space is %d\n", frame);
-        kprintf("create_frame_table: orgin address is %p, ft address is %p\n",(void *)pt, ft);
+        // kprintf("create_frame_table: used space is %d\n", frame);
+        // kprintf("create_frame_table: orgin address is %p, ft address is %p\n",(void *)pt, ft);
         
         r_pt -> hash_pt = hash_pt;
         r_pt -> hash_frame_num = 2 * indicate_frame_number;

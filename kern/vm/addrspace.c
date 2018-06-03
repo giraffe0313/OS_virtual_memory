@@ -48,6 +48,8 @@
  *
  */
 
+static struct spinlock stealmem_lock = SPINLOCK_INITIALIZER;
+
 struct addrspace *
 as_create(void)
 {
@@ -85,9 +87,10 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         }
         // kprintf("as_copy: start\n");
         int spl = splhigh();
+        // old -> head -> old = old;
         p_memory_address *old_pt = old -> head -> next;
         p_memory_address *newas_pt = newas -> head;
-        newas_pt -> old = old;
+        newas -> head -> old = old;
         p_memory_address *temp = 0;
         while (old_pt) {
                 temp = (p_memory_address *)alloc_kpages(1);
@@ -103,19 +106,21 @@ as_copy(struct addrspace *old, struct addrspace **ret)
         old_pt = old -> head -> next;
         newas_pt = newas -> head -> next;
 
+        // kprintf("old is %p\n", (void *)newas -> head -> old);
         // while (newas_pt) {
         //         kprintf("old_vaddr as is %p, new as is %p\n", old, newas);
         //         kprintf("old_vaddr is %d, new_vaddr is %d\n", old_pt -> p_vaddr, newas_pt -> p_vaddr);
         //         kprintf("old_p_upper is %d, new_p_upper is %d\n", old_pt -> p_upper, newas_pt -> p_upper);
         //         kprintf("old_permission is %d, new_permission is %d\n", old_pt -> permission, newas_pt -> permission);
+        //         kprintf("\n");
         //         old_pt = old_pt -> next;
         //         newas_pt = newas_pt -> next;
         // }
 
         // add_HPT(old, newas);
 
-        kprintf("\n");
-
+        // kprintf("\n");
+        // kprintf("\n");
 
         splx(spl);
 
@@ -132,11 +137,29 @@ as_copy(struct addrspace *old, struct addrspace **ret)
 void
 as_destroy(struct addrspace *as)
 {
-        /*
-         * Clean up as needed.
-         */
+        // int spl = splhigh();
+        // delete_HPT((paddr_t)as);
+        spinlock_acquire(&stealmem_lock);
+        kprintf("destroy as is %p!!!!!\n", as);
+        // free_kpages((paddr_t)as -> head);
+        p_memory_address *tmp = as -> head;
+        // free_kpages((paddr_t)tmp);
+        // p_memory_address *tmp_next = as -> head -> next;
+        while (tmp) {
+                p_memory_address *tmp_next = tmp -> next;
+                free_kpages((paddr_t)tmp);
+                tmp = tmp_next;
+        }
+        free_kpages((paddr_t)as);
+        // delete_HPT();
+        // splx(spl);
+        
 
-        kfree(as);
+        
+        spinlock_release(&stealmem_lock);
+        
+        
+        (void) as;
 }
 
 void
@@ -188,22 +211,22 @@ int
 as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
                  int readable, int writeable, int executable)
 {
-        int x = hpt_hash(as, vaddr);
-        kprintf("hash table is : %d\n", x);
+        // int x = hpt_hash(as, vaddr);
+        // kprintf("hash table is : %d\n", x);
 
-        kprintf("as_define_region: vaddr_t is %d, size_t is %d\n", vaddr, memsize);
-        size_t npages;
+        // kprintf("as_define_region: vaddr_t is %d, size_t is %d\n", vaddr, memsize);
+        // size_t npages;
         memsize += vaddr & ~(vaddr_t)PAGE_FRAME;
         vaddr &= PAGE_FRAME;
-        kprintf("as_define_region:  changed vaddr is %p\n", (void *)vaddr);
+        // kprintf("as_define_region:  changed vaddr is %p\n", (void *)vaddr);
         memsize = (memsize + PAGE_SIZE - 1) & PAGE_FRAME;
-        kprintf("as_define_region: changed memsize is %d\n", memsize);
-        npages = memsize / PAGE_SIZE;
-        kprintf("as_define_region: npages is %d\n", npages);
+        // kprintf("as_define_region: changed memsize is %d\n", memsize);
+        // npages = memsize / PAGE_SIZE;
+        // kprintf("as_define_region: npages is %d\n", npages);
 
         // kprintf("read %d write %d exe %d %d\n", readable, writeable, executable, 
         //                                         readable | writeable | executable);
-        kprintf("as_define_region: vertual page number is %d\n", vaddr / PAGE_SIZE);
+        // kprintf("as_define_region: vertual page number is %d\n", vaddr / PAGE_SIZE);
 
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
         // temp -> frame_table_num = 0;
@@ -217,8 +240,8 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
         temp -> old = NULL;
         // kprintf("as_define_region: malloc address is %p\n", temp);
 
-        kprintf("as_define_region: lower is %d\n", vaddr);
-        kprintf("as_define_region: higher is %d\n", temp -> p_upper);
+        // kprintf("as_define_region: lower is %d\n", vaddr);
+        // kprintf("as_define_region: higher is %d\n", temp -> p_upper);
 
         p_memory_address *tmp = as -> head;
         while (tmp -> next) {
@@ -229,7 +252,7 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize,
 
         tmp = as -> head -> next;
         while (tmp) {
-                kprintf("as_define_region: test p_vaddr is %d\n", tmp -> p_vaddr);
+                // kprintf("as_define_region: test p_vaddr is %d\n", tmp -> p_vaddr);
                 tmp = tmp -> next;
         }        
         // test hashed table
@@ -266,19 +289,21 @@ as_prepare_load(struct addrspace *as)
 {
 
         // left shift 3bits and allocte readwrite permision
+        int spl = splhigh();
         int bit = 7;
-        kprintf("as_prepare_load: start load\n");
+        // kprintf("as_prepare_load: start load\n");
         p_memory_address *temp = as -> head -> next;
         while (temp) {
-                kprintf("as_prepare_load: permission is %d\n", temp -> permission);
+                // kprintf("as_prepare_load: permission is %d\n", temp -> permission);
                 temp -> permission = temp -> permission << 3;
                 temp -> permission = temp -> permission | bit;
-                kprintf("as_prepare_load: changed permission is %d\n", temp -> permission);
+                // kprintf("as_prepare_load: changed permission is %d\n", temp -> permission);
 
                 temp = temp -> next;
         }
 
         (void)as;
+        splx(spl);
         return 0;
 }
 
@@ -286,15 +311,17 @@ int
 as_complete_load(struct addrspace *as)
 {
         // right shift 3 bits
-        kprintf("as_complete_load: start load\n");
+        int spl = splhigh();
+        // kprintf("as_complete_load: start load\n");
         p_memory_address *temp = as -> head -> next;
         while (temp) {
-                kprintf("as_complete_load: permission is %d\n", temp -> permission);
+                // kprintf("as_complete_load: permission is %d\n", temp -> permission);
                 temp -> permission = temp -> permission >> 3;
-                kprintf("as_complete_load: changed permission is %d\n", temp -> permission);
+                // kprintf("as_complete_load: changed permission is %d\n", temp -> permission);
                 temp = temp -> next;
         }
         (void)as;
+        splx(spl);
         return 0;
 }
 
@@ -302,7 +329,7 @@ int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
         // kprintf("as_define_stack: start\n");
-
+        int spl = splhigh();
         p_memory_address *temp = (p_memory_address *)alloc_kpages(1);
         // kprintf("stack adress is %p\n", temp);
         // temp -> frame_table_num = 0;
@@ -325,7 +352,7 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
         /* Initial user-level stack pointer */
         *stackptr = USERSTACK;
-
+        splx(spl);
         return 0;
 }
 
